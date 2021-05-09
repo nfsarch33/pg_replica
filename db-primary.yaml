@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgsqldb
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgsqldb
+  template:
+    metadata:
+      labels:
+        type: deployment
+        app: pgsqldb
+    spec:
+      containers:
+        - image: postgres:10
+          imagePullPolicy: IfNotPresent
+          name: pgsqldb
+          ports:
+            - containerPort: 5432
+          envFrom:
+            - configMapRef:
+                name: pgsqldb-config
+          volumeMounts:
+            - name: pgsqldbmnt
+              mountPath: /var/lib/postgresql/data
+      initContainers:
+        - name: init-pgsqldb
+          image: busybox:1.28
+          imagePullPolicy: IfNotPresent
+          command: ['sh', '-c', 'rm -rf /var/lib/postgresql/data/* && cp /var/lib/postgresql/data/postgresql.main.conf /var/lib/postgresql/data/postgresql.conf && cp /var/lib/postgresql/data/pg_hba.main.conf /var/lib/postgresql/data/pg_hba.conf && chmod 600 /var/lib/postgresql/data/postgresql.conf && chmod 600 /var/lib/postgresql/data/pg_hba.conf']
+          volumeMounts:
+            - name: pgsqldbmnt
+              mountPath: /var/lib/postgresql/data
+            - name: pgsql-conf-files-config-mnt
+              mountPath: /var/lib/postgresql/data/postgresql.main.conf
+              subPath: postgresql.conf
+            - name: pgsql-conf-files-config-mnt
+              mountPath: /var/lib/postgresql/data/pg_hba.main.conf
+              subPath: pg_hba.conf
+      volumes:
+        - name: pgsqldbmnt
+          persistentVolumeClaim:
+            claimName: master-volume-pvc-hostpath
+        - name: pgsql-conf-files-config-mnt
+          configMap:
+            name: pgsql-conf-files-config

@@ -1,0 +1,34 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pgsqldb-standby
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pgsqldb-standby
+  template:
+    metadata:
+      labels:
+        type: pgsqldb-standby
+        app: pgsqldb-standby
+    spec:
+      containers:
+        - image: busybox:1.28
+          imagePullPolicy: Always
+          name: pgsqldb-standby
+      volumes:
+        - name: pgsqldb-standby-mnt
+          persistentVolumeClaim:
+            claimName: standby-volume-pvc-hostpath
+#        - name: pgsqldb-standby-config-mnt
+#          configMap:
+#            name: pgsqldb-standby-conf-files-config
+#      initContainers:
+#        - name: init-pgsqldb-standby
+#          image: postgres:10
+#          command: ['sh', '-c', 'PGPASSWORD="changeme" pg_basebackup -h pgsqldb -D /var/lib/postgresql/data -U repuser -vP ']
+#          volumeMounts:
+#            - name: pgsqldb-standby-mnt
+#              mountPath: /var/lib/postgresql/data
+#              subPath: pgsqldb_standby/data
